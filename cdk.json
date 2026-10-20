@@ -1,4 +1,4 @@
 {
-  "app": ".venv/bin/python -m infra.app"
+  "app": "python -m infra.app"
 }
 
