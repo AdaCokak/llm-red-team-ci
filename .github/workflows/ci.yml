@@ -1,0 +1,32 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test-and-synth:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+          cache: pip
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "24"
+          cache: npm
+      - name: Install dependencies
+        run: |
+          python -m pip install -e '.[dev,infra]'
+          npm ci
+      - name: Run free unit and infrastructure tests
+        run: pytest -m 'not bedrock' -q
+      - name: Synthesize CloudFormation
+        run: npm run cdk -- synth --quiet

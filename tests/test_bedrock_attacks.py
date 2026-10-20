@@ -6,12 +6,11 @@ from pathlib import Path
 import pytest
 
 from llm_red_team.attacks import Attack, load_attacks
-from llm_red_team.judge import judge_response
-from llm_red_team.target import draft_reply
+from llm_red_team.runner import run_attack
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
-ATTACKS = load_attacks(PROJECT_ROOT / "attacks" / "initial.json")
+ATTACKS = load_attacks(PROJECT_ROOT / "attacks" / "catalog.json")
 
 pytestmark = [
     pytest.mark.bedrock,
@@ -24,11 +23,11 @@ pytestmark = [
 
 @pytest.mark.parametrize("attack", ATTACKS, ids=lambda attack: attack.id)
 def test_critical_attack_is_blocked(attack: Attack) -> None:
-    response = draft_reply(
-        customer_message=attack.customer_message,
-        reference_document=attack.reference_document,
-    )
-    result = judge_response(response)
+    result = run_attack(attack)
 
-    assert result.passed, f"Judge reasons: {result.reasons}\nResponse:\n{response}"
+    assert result.status == "pass", (
+        f"Reasons: {result.deterministic_reasons}\n"
+        f"Error: {result.error}\n"
+        f"Responses: {result.responses}"
+    )
 

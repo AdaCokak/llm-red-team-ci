@@ -1,0 +1,80 @@
+name: Security gate and deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: production-deploy
+  cancel-in-progress: false
+
+jobs:
+  attack-gate-and-deploy:
+    runs-on: ubuntu-latest
+    environment: production
+    env:
+      AWS_REGION: us-east-1
+      BEDROCK_MODEL_ID: us.amazon.nova-micro-v1:0
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+          cache: pip
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "24"
+          cache: npm
+      - name: Install dependencies
+        run: |
+          python -m pip install -e '.[dev,infra]'
+          npm ci
+      - name: Configure temporary AWS credentials
+        uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+          allowed-account-ids: ${{ vars.AWS_ACCOUNT_ID }}
+      - name: Load currently deployed Guardrail when available
+        run: |
+          GUARDRAIL_ID=$(aws cloudformation describe-stacks --stack-name TargetAppStack --query "Stacks[0].Outputs[?OutputKey=='GuardrailId'].OutputValue" --output text 2>/dev/null || true)
+          GUARDRAIL_VERSION=$(aws cloudformation describe-stacks --stack-name TargetAppStack --query "Stacks[0].Outputs[?OutputKey=='GuardrailVersion'].OutputValue" --output text 2>/dev/null || true)
+          if [ -n "$GUARDRAIL_ID" ] && [ "$GUARDRAIL_ID" != "None" ]; then
+            echo "BEDROCK_GUARDRAIL_ID=$GUARDRAIL_ID" >> "$GITHUB_ENV"
+            echo "BEDROCK_GUARDRAIL_VERSION=$GUARDRAIL_VERSION" >> "$GITHUB_ENV"
+          fi
+      - name: Download prior reports for trend
+        if: ${{ vars.REPORT_BUCKET != '' }}
+        run: |
+          mkdir -p reports/history
+          aws s3 sync "s3://${{ vars.REPORT_BUCKET }}/runs" reports/history --exclude "*" --include "*.json"
+      - name: Run paid 50-case security gate
+        run: python scripts/run_attacks.py
+      - name: Build cross-commit trend
+        if: always()
+        run: python scripts/build_trend.py
+      - name: Save report history
+        if: ${{ always() && vars.REPORT_BUCKET != '' }}
+        run: aws s3 cp reports/ "s3://${{ vars.REPORT_BUCKET }}/runs/${{ github.sha }}/" --recursive --exclude "history/*"
+      - name: Upload red-team evidence
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: red-team-report-${{ github.sha }}
+          path: reports/
+          if-no-files-found: error
+          retention-days: 30
+      - name: Deploy only after the gate passes
+        run: npm run cdk -- deploy TargetAppStack --require-approval never
+      - name: Smoke-test deployed IAM API
+        run: |
+          TARGET_API_URL=$(aws cloudformation describe-stacks --stack-name TargetAppStack --query "Stacks[0].Outputs[?OutputKey=='TargetApiUrl'].OutputValue" --output text)
+          export TARGET_API_URL
+          python scripts/run_attacks.py --transport api --limit 1
