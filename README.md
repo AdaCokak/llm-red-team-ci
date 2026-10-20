@@ -179,9 +179,10 @@ server.
 
 ## GitHub OIDC setup
 
-This checkout currently has no GitHub remote, so the trust stack is deliberately
-not deployed with a guessed repository identity. After creating the repository,
-replace the two example values and deploy once:
+The project is published at `AdaCokak/llm-red-team-ci`. Its OIDC stack reuses
+the account's existing GitHub provider and creates a role scoped to this exact
+repository and its `production` environment. To reproduce the setup for a
+different repository, replace the two example values and deploy once:
 
 ```bash
 npm run cdk -- deploy GitHubOidcStack \
@@ -204,7 +205,7 @@ npm run cdk -- deploy GitHubOidcStack \
 This creates an OIDC provider, a temporary-credential role scoped to the exact
 `production` GitHub environment, and a private report bucket with 90-day
 expiry. In GitHub, create an environment named `production`, protect it, and
-add these repository variables from the stack outputs/account:
+add these environment-scoped variables from the stack outputs/account:
 
 - `AWS_ROLE_ARN` — `GitHubActionsRoleArn` output.
 - `AWS_ACCOUNT_ID` — the 12-digit destination account ID.
@@ -212,8 +213,8 @@ add these repository variables from the stack outputs/account:
 
 The CI workflow has read-only repository permission. The deploy workflow alone
 can request an OIDC token; no long-lived AWS access keys are stored in GitHub.
-For a production system, pin third-party actions to full commit SHAs rather
-than moving major-version tags.
+Third-party actions are pinned to immutable commit SHAs, and Dependabot checks
+weekly for reviewed GitHub Actions, npm, and Python dependency updates.
 
 ## Cost and shutdown
 
