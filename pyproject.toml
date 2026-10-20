@@ -15,6 +15,10 @@ dependencies = [
 dev = [
     "pytest>=8,<9",
 ]
+infra = [
+    "aws-cdk-lib>=2,<3",
+    "constructs>=10,<11",
+]
 
 [tool.setuptools.packages.find]
 where = ["src"]

@@ -62,7 +62,7 @@ export BEDROCK_MODEL_ID=us.amazon.nova-micro-v1:0
 Run the five attacks:
 
 ```bash
-python scripts/run_attacks.py
+PYTHONPATH=src python scripts/run_attacks.py
 ```
 
 The final command invokes a paid Bedrock model. It sends five short requests
@@ -94,4 +94,61 @@ The second command invokes Bedrock once for every selected attack. A critical
 canary or protected-prompt leak produces a non-zero exit code suitable for a CI
 gate. The deterministic judge can miss paraphrased or behavioural violations,
 so its passing result is intentionally described as narrow rather than secure.
+
+## CDK learning stack
+
+The first infrastructure stack contains one small ARM Lambda and a CloudWatch
+log group with seven-day retention. Install the locally pinned CDK CLI and the
+Python infrastructure dependencies:
+
+```bash
+npm_config_cache=.npm-cache npm install
+python -m pip install -e '.[dev,infra]'
+```
+
+Generate and inspect the CloudFormation template locally:
+
+```bash
+npm run cdk -- synth HelloLambdaStack
+```
+
+Synthesis does not deploy or create AWS resources. Deployment and destruction
+are intentionally documented only after the template and stack tests pass.
+
+Verify the destination and bootstrap CDK once for this account and region:
+
+```bash
+export CDK_DEFAULT_ACCOUNT="$(aws sts get-caller-identity --query Account --output text)"
+export CDK_DEFAULT_REGION=us-east-1
+npm run cdk -- bootstrap "aws://${CDK_DEFAULT_ACCOUNT}/${CDK_DEFAULT_REGION}" --profile default
+```
+
+Bootstrap creates the reusable `CDKToolkit` stack, including an S3 asset bucket,
+deployment roles, and an ECR repository. It has no continuously running compute,
+but stored assets can incur a very small storage charge.
+
+Review the proposed CloudFormation and IAM changes:
+
+```bash
+npm run cdk -- diff HelloLambdaStack --profile default
+```
+
+Deploy after reviewing the diff:
+
+```bash
+npm run cdk -- deploy HelloLambdaStack --profile default
+```
+
+The deployment command asks for confirmation if it detects security-sensitive
+changes. The stack creates one Lambda, its least-privilege logging role, and a
+seven-day CloudWatch log group. Lambda has no idle compute charge.
+
+Remove the learning stack when it is no longer needed:
+
+```bash
+npm run cdk -- destroy HelloLambdaStack --profile default
+```
+
+This deletes the Lambda, role, and log group after confirmation. It intentionally
+leaves the shared `CDKToolkit` bootstrap stack in place for later project stacks.
 
