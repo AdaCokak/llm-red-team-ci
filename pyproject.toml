@@ -1,0 +1,21 @@
+[build-system]
+requires = ["setuptools>=75"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "llm-red-team-pipeline"
+version = "0.1.0"
+description = "A learning project for testing an Amazon Bedrock application against prompt attacks"
+requires-python = ">=3.11"
+dependencies = [
+    "boto3>=1.35,<2",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8,<9",
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
