@@ -47,6 +47,7 @@ if github_owner and github_repo:
         "GitHubOidcStack",
         github_owner=github_owner,
         github_repo=github_repo,
+        provider_arn=app.node.try_get_context("github_oidc_provider_arn"),
         env=cdk.Environment(
             account=os.getenv("CDK_DEFAULT_ACCOUNT"),
             region=os.getenv("CDK_DEFAULT_REGION", "us-east-1"),

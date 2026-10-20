@@ -190,6 +190,17 @@ npm run cdk -- deploy GitHubOidcStack \
   --profile default
 ```
 
+If the AWS account already has the standard GitHub OIDC provider, import it
+instead of attempting to create a duplicate:
+
+```bash
+npm run cdk -- deploy GitHubOidcStack \
+  -c github_owner=YOUR_GITHUB_OWNER \
+  -c github_repo=YOUR_REPOSITORY \
+  -c github_oidc_provider_arn='arn:aws:iam::ACCOUNT_ID:oidc-provider/token.actions.githubusercontent.com' \
+  --profile default
+```
+
 This creates an OIDC provider, a temporary-credential role scoped to the exact
 `production` GitHub environment, and a private report bucket with 90-day
 expiry. In GitHub, create an environment named `production`, protect it, and

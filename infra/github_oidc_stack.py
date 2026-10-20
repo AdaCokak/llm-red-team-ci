@@ -20,16 +20,24 @@ class GitHubOidcStack(cdk.Stack):
         *,
         github_owner: str,
         github_repo: str,
+        provider_arn: str | None = None,
         **kwargs: object,
     ) -> None:
         super().__init__(scope, construct_id, **kwargs)
 
-        provider = iam.OpenIdConnectProvider(
-            self,
-            "GitHubProvider",
-            url="https://token.actions.githubusercontent.com",
-            client_ids=["sts.amazonaws.com"],
-        )
+        if provider_arn:
+            provider = iam.OpenIdConnectProvider.from_open_id_connect_provider_arn(
+                self,
+                "GitHubProvider",
+                provider_arn,
+            )
+        else:
+            provider = iam.OpenIdConnectProvider(
+                self,
+                "GitHubProvider",
+                url="https://token.actions.githubusercontent.com",
+                client_ids=["sts.amazonaws.com"],
+            )
         principal = iam.WebIdentityPrincipal(
             provider.open_id_connect_provider_arn,
             conditions={
