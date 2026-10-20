@@ -206,4 +206,3 @@ def should_fail_build(report: dict[str, object]) -> bool:
     summary = report["summary"]
     assert isinstance(summary, dict)
     return int(summary["critical_failures"]) > 0
-

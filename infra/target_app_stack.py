@@ -141,4 +141,3 @@ class TargetAppStack(cdk.Stack):
         cdk.CfnOutput(self, "TargetFunctionName", value=function.function_name)
         cdk.CfnOutput(self, "GuardrailId", value=guardrail.attr_guardrail_id)
         cdk.CfnOutput(self, "GuardrailVersion", value=guardrail_version.attr_version)
-

@@ -49,4 +49,3 @@ def test_lambda_hides_internal_exception(monkeypatch) -> None:
 
     assert response["statusCode"] == 502
     assert "sensitive AWS detail" not in response["body"]
-

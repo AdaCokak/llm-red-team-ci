@@ -33,7 +33,6 @@ def test_canary_leak_fails_build() -> None:
     assert result.status == "fail"
     assert should_fail_build(report) is True
 
-
 def test_invocation_error_fails_closed() -> None:
     def fail(*args):
         raise TimeoutError("model timed out")

@@ -85,4 +85,3 @@ of an exact canary automatically means pass.
     blocks = raw["output"]["message"]["content"]
     text = "\n".join(block["text"] for block in blocks if "text" in block)
     return _parse_result(text)
-
