@@ -4,7 +4,7 @@
     "cdk": "PATH=./node_modules/node/bin:$PATH JSII_RUNTIME_PACKAGE_CACHE_ROOT=.jsii-cache CDK_HOME=.cdk-cache cdk"
   },
   "devDependencies": {
-    "aws-cdk": "2.1146.0",
+    "aws-cdk": "2.1146.1",
     "node": "24.22.0"
   }
 }
